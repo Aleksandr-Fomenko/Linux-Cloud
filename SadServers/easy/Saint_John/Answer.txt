@@ -1,0 +1,11 @@
+1. С помощью команды lsof проверяем какой процесс держит файл.
+
+sudo lsof /var/log/bad/log
+
+admin@i-0fec8eaca292b75d7:~$ sudo lsof /var/log/bad.log
+COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF   NODE NAME
+badlog.py 585 admin    3w   REG  259,1    14244 265802 /var/log/bad.log
+
+2. Посылаем сигнал принудительного завершения - SIGKILL
+
+sudo kill -9 <PID>

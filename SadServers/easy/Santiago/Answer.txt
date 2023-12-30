@@ -1,0 +1,20 @@
+1. Переходим в домашнюю директорию /home/admin
+
+cd /home/admin
+
+2. Ищем строки в которых присутствует слово "Alice" и подсчитываем их кол-во
+
+admin@i-0e51cb7bc2b788b3c:~$ grep "Alice" *.txt | wc -l
+411
+
+3. Проверяем txt файлы чтобы найти вторую часть ответа
+
+grep "Alice" -A 1 <имя файла>.txt - выведет дополнительную строку следующую за основной, ответ в файле 1342-0.txt
+
+admin@i-0a17e1cac7e00779d:~$ grep "Alice" -A 1 1342-0.txt
+                                Alice
+                        156 CHARING CROSS ROAD
+
+4. Добавляем ответ в файл solution
+
+admin@i-0a17e1cac7e00779d:~$ echo "411156" > ~/solution
