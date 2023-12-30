@@ -1,0 +1,87 @@
+1. Запускаем curl для проверки доступа apache
+
+admin@i-00c3c851cbabfce15:~/john/run$ curl localhost:80
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>401 Unauthorized</title>
+</head><body>
+<h1>Unauthorized</h1>
+<p>This server could not verify that you
+are authorized to access the document
+requested.  Either you supplied the wrong
+credentials (e.g., bad password), or your
+browser doesn't understand how to supply
+the credentials required.</p>
+<hr>
+<address>Apache/2.4.54 (Debian) Server at localhost Port 80</address>
+</body></html>
+
+2. Изучаем конфигурацию веб сервера apache
+
+admin@i-00c3c851cbabfce15:~/john/run$ cat /etc/apache2/sites-available/000-default.conf
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/html
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+
+        <Directory "/var/www/html">
+                AuthType Basic
+                AuthName "Protected Content"
+                AuthUserFile /etc/apache2/.htpasswd
+                Require valid-user
+        </Directory>
+</VirtualHost>
+
+admin@i-00c3c851cbabfce15:~/john/run$ cat /etc/apache2/.htpasswd
+carlos:$apr1$b1kyfnHB$yRHwzbuKSMyW62QTnGYCb0
+
+3. Расшифровываем пароль и делаем запрос curl с кредами
+
+admin@i-08b54bbd0d0f25462:~$ ~/john/run/john /etc/apache2/.htpasswd
+...
+chalet           (carlos)
+...
+
+admin@i-00c3c851cbabfce15:~$ curl localhost/webfile -u "carlos:chalet" --output secret
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   215  100   215    0     0   104k      0 --:--:-- --:--:-- --:--:--  104k
+
+4. Проверяем формат файла secret
+
+admin@i-00c3c851cbabfce15:~$ file secret
+secret: Zip archive data, at least v1.0 to extract
+
+5. Разархивируем secret c паролем chalet
+
+admin@i-00c3c851cbabfce15:~$ unzip secret
+Archive:  secret
+[secret] secret.txt password:
+password incorrect--reenter:
+
+6. Используем утилиты zip2john и john для получения пароля для архива secret
+
+admin@i-00c3c851cbabfce15:~$ john/run/zip2john secret > zip.hash
+ver 1.0 efh 5455 efh 7875 secret/secret.txt PKZIP Encr: 2b chk, TS_chk, cmplen=29, decmplen=17, crc=AAC6E9AF ts=14E0 cs=14e0 type=0
+
+admin@i-00c3c851cbabfce15:~$ john/run/john zip.hash
+Using default input encoding: UTF-8
+Loaded 1 password hash (PKZIP [32/64])
+Will run 2 OpenMP threads
+Proceeding with single, rules:Single
+Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status
+Almost done: Processing the remaining buffered candidate passwords, if any.
+0g 0:00:00:00 DONE 1/3 (2024-01-04 19:04) 0g/s 470700p/s 470700c/s 470700C/s Txtsecret/secret.txt1900..Tsecret1900
+Proceeding with wordlist:john/run/password.lst
+Enabling duplicate candidate password suppressor
+0g 0:00:00:00 DONE 2/3 (2024-01-04 19:04) 0g/s 78455p/s 78455c/s 78455C/s
+Proceeding with incremental:ASCII
+andes            (secret/secret.txt)
+1g 0:00:00:01 DONE 3/3 (2024-01-04 19:04) 0.7092g/s 18730p/s 18730c/s 18730C/s 11022..asd143
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed.
+
+7. Распаковываем архив secret с помощью полученного пароля и отправляем задание на проверку
+

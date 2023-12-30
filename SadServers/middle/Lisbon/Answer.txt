@@ -1,0 +1,58 @@
+1. Запускаем тест из описания задачи
+
+admin@ip-10-0-0-138:/$ etcdctl get foo
+Error:  client: etcd cluster is unavailable or misconfigured; error #0: x509: certificate has expired or is not yet valid: current time 2026-01-02T13:07:53Z is after 2023-01-30T00:02:48Z
+
+error #0: x509: certificate has expired or is not yet valid: current time 2026-01-02T13:07:53Z is after 2023-01-30T00:02:48Z
+
+2. Устанавливаем время, получаем информацию по таблице nat iptables и очищаем правила
+
+admin@ip-10-0-0-138:/$ sudo date -s "Jan 02 18:00:00 2023"
+Mon Jan  2 18:00:00 UTC 2023
+
+admin@ip-10-0-0-138:/$ etcdctl get foo
+Error:  client: response is invalid json. The endpoint is probably not valid etcd cluster endpoint.
+
+admin@ip-10-0-0-138:/$ sudo iptables -t nat -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+DOCKER     all  --  anywhere             anywhere             ADDRTYPE match dst-type LOCAL
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+REDIRECT   tcp  --  anywhere             anywhere             tcp dpt:2379 redir ports 443
+DOCKER     all  --  anywhere            !ip-127-0-0-0.us-east-2.compute.internal/8  ADDRTYPE match dst-type LOCAL
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  ip-172-17-0-0.us-east-2.compute.internal/16  anywhere
+
+Chain DOCKER (2 references)
+target     prot opt source               destination
+RETURN     all  --  anywhere             anywhere
+
+admin@ip-10-0-0-138:/$ sudo iptables -t nat -F
+
+admin@ip-10-0-0-138:/$ sudo iptables -t nat -L
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+
+Chain DOCKER (0 references)
+target     prot opt source               destination
+
+3. Запускаем тест из описания задачи
+
+admin@ip-10-0-0-138:/$ etcdctl get foo
+bar

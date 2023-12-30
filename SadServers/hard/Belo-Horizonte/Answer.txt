@@ -1,0 +1,51 @@
+1. Запускаем java class Sad
+
+admin@i-013385bbcafb6f62f:~$ java Sad
+Error: LinkageError occurred while loading main class Sad
+        java.lang.UnsupportedClassVersionError: Sad has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+
+2. Устанавливаем символьную ссылку на нужную версию java
+
+admin@i-013385bbcafb6f62f:~$ update-java-alternatives --list
+java-1.11.0-openjdk-amd64      1111       /usr/lib/jvm/java-1.11.0-openjdk-amd64
+java-1.17.0-openjdk-amd64      1711       /usr/lib/jvm/java-1.17.0-openjdk-amd64
+
+admin@i-013385bbcafb6f62f:~$ sudo update-java-alternatives --set /usr/lib/jvm/java-1.17.0-openjdk-amd64
+
+3. Запускаем java class Sad
+
+admin@i-013385bbcafb6f62f:~$ java Sad
+Error: Could not find or load main class Sad
+Caused by: java.lang.NoClassDefFoundError: VerySad (wrong name: Sad)
+
+4. Меняем имя класса в папке /home/admin
+
+admin@i-013385bbcafb6f62f:~$ mv Sad.class VerySad.class
+
+5. Запускаем класс VerySad
+
+admin@i-013385bbcafb6f62f:~$ java VerySad
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+        at VerySad.main(VerySad.java:4)
+
+6. Создаем swapfile
+
+admin@i-013385bbcafb6f62f:~$ sudo fallocate -l 1G /swapfile
+
+admin@i-013385bbcafb6f62f:~$ sudo chmod 600 /swapfile
+
+admin@i-013385bbcafb6f62f:~$ sudo mkswap /swapfile
+Setting up swapspace version 1, size = 1024 MiB (1073737728 bytes)
+no label, UUID=1c8036a9-124b-4286-9747-f6ac86111b12
+
+admin@i-013385bbcafb6f62f:~$ sudo swapon /swapfile
+
+admin@i-013385bbcafb6f62f:~$ free -m
+               total        used        free      shared  buff/cache   available
+Mem:             455          60         201           0         194         383
+Swap:           1023           0        1023
+
+7. Запускаем класс VerySad
+
+admin@i-013385bbcafb6f62f:~$ java -Xmx1G VerySad
+YXADJA

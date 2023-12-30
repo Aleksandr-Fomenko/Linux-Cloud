@@ -1,0 +1,21 @@
+Скрипт для получения данных, где можно найти ответ по максимальному значению:
+
+...
+#!/usr/bin/python3
+
+import csv
+import operator
+
+def getResult(fileName):
+    with open(fileName, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        result = {}
+        for i in csv_reader:
+            if float(i['Population']) < 100000:
+                result[i['Electoral District Name/Nom de circonscription']] = float(i['Rejected Ballots/Bulletins rejetés'])
+                print(max(result.items(), key=operator.itemgetter(1)))
+
+
+if __name__ == "__main__":
+    getResult('/home/admin/table_tableau11.csv')
+...

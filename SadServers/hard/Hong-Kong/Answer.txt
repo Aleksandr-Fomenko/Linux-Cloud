@@ -1,0 +1,97 @@
+1. Запускаем тесты из описания задачи
+
+root@ip-172-31-25-11:/# sudo -u postgres psql -c "insert into persons(name) values ('jane smith');" -d dt
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+        Is the server running locally and accepting connections on that socket?
+
+2. Проверяем что открыт порт 5432 и запущен процесс postgres
+
+root@ip-172-31-25-11:/# ps -auxf | grep postgres
+root      1306  0.0  0.1   4832   816 pts/0    S+   17:30   0:00      \_ grep postgres
+
+root@ip-172-31-25-11:/# netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      594/sshd
+tcp6       0      0 :::6767                 :::*                    LISTEN      561/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      562/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      594/sshd
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           591/chronyd
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           356/dhclient
+udp6       0      0 fe80::84b:7aff:fe37:546 :::*                                457/dhclient
+udp6       0      0 ::1:323                 :::*                                591/chronyd
+
+3. Выводим информацию по systemd и фильтруем по ошибкам
+
+root@ip-172-31-25-11:/# journalctl -p err
+-- Logs begin at Thu 2024-01-04 17:27:50 UTC, end at Thu 2024-01-04 17:32:09 UTC. --
+Jan 04 17:27:50 ip-172-31-25-11 kernel: ena 0000:00:05.0: LLQ is not supported Fallback to host mode policy
+Jan 04 17:27:55 ip-172-31-25-11 systemd[1]: Failed to start PostgreSQL Cluster 14-main.
+Jan 04 17:29:20 ip-172-31-25-11 systemd[1]: Timed out waiting for device /dev/xvdb.
+
+4. Проверяем наличие блочных устройств
+
+root@ip-172-31-25-11:/dev# lsblk
+NAME         MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+nvme0n1      259:0    0    8G  0 disk
+nvme1n1      259:1    0    8G  0 disk
+├─nvme1n1p1  259:2    0  7.9G  0 part /
+├─nvme1n1p14 259:3    0    3M  0 part
+└─nvme1n1p15 259:4    0  124M  0 part /boot/efi
+
+5. Редактируем файл fstab
+
+Строку с /dev/xvdb меняем на следующую:
+
+/dev/nvme0n1 /opt/pgdata xfs defaults 0 0
+
+6. Монтируем все файловые системы указанные в fstab
+
+root@ip-172-31-25-11:/dev# mount -a
+
+7. Перезагружаем службу postgresql
+
+root@ip-172-31-25-11:/dev# systemctl restart postgresql
+
+8. Проверяем что открыт порт 5432
+
+root@ip-172-31-25-11:/dev# netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      594/sshd
+tcp6       0      0 :::6767                 :::*                    LISTEN      561/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      562/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      594/sshd
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           591/chronyd
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           356/dhclient
+udp6       0      0 fe80::84b:7aff:fe37:546 :::*                                457/dhclient
+udp6       0      0 ::1:323                 :::*                                591/chronyd
+
+9. Смотрим логи postgres
+
+root@ip-172-31-25-11:/dev# cat /var/log/postgresql/postgresql-14-main.log
+2024-01-04 17:41:28.616 UTC [1558] FATAL:  could not create lock file "postmaster.pid": No space left on device
+pg_ctl: could not start server
+Examine the log output.
+
+10. Проверяем утилизацию файловых систем
+
+root@ip-172-31-25-11:/dev# df -h
+Filesystem       Size  Used Avail Use% Mounted on
+udev             224M     0  224M   0% /dev
+tmpfs             47M  1.5M   45M   4% /run
+/dev/nvme1n1p1   7.7G  1.2G  6.1G  17% /
+tmpfs            233M     0  233M   0% /dev/shm
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            233M     0  233M   0% /sys/fs/cgroup
+/dev/nvme1n1p15  124M  278K  124M   1% /boot/efi
+/dev/nvme0n1     8.0G  8.0G   28K 100% /opt/pgdata
+
+11. Удаляем file*.bk и перезагружаем службу postgresql
+
+root@ip-172-31-25-11:/dev# rm /opt/pgdata/file*.bk
+
+12. Запускаем тесты из описания задачи
+
+root@ip-172-31-25-11:/dev# sudo -u postgres psql -c "insert into persons(name) values ('jane smith');" -d dt
+INSERT 0 1

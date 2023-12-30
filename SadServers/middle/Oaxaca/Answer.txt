@@ -1,0 +1,16 @@
+1. Получаем PID процесса который работает с файлом
+
+admin@i-09cb35c6fd3364f4b:/$ lsof /home/admin/somefile
+COMMAND PID  USER   FD   TYPE DEVICE SIZE/OFF   NODE NAME
+bash    827 admin   77w   REG  259,1        0 272875 /home/admin/somefile
+
+2. Получаем наименование символьной ссылки на открытый файловый дескриптор
+
+admin@i-09cb35c6fd3364f4b:/$ ls -la /proc/827/fd/ | grep somefile | awk '{ print $9 }'
+77
+
+3. Закрываем файловый дескриптор с помощью exec 77>&-
+
+4. Запускаем тестовую команду из описания задачи
+
+admin@i-09cb35c6fd3364f4b:/$ lsof /home/admin/somefile

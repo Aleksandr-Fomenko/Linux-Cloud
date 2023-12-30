@@ -1,0 +1,36 @@
+1. Переключаемся под пользователя root
+
+admin@i-02186c44e1c7fb38b:~$ sudo su -
+
+2. Получаем информацию о поде с лейблом app=logshipper и читаем логи пода
+
+root@i-0f1131298b420b624:~# kubectl get pods -l app=logshipper
+NAME                         READY   STATUS    RESTARTS       AGE
+logshipper-7d97c8659-npscd   1/1     Running   20 (72d ago)   72d
+
+root@i-0f1131298b420b624:~# kubectl logs logshipper-7d97c8659-npscd
+Exception when calling CoreV1Api->read_namespaced_pod_log: (403)
+Reason: Forbidden
+HTTP response headers: HTTPHeaderDict({'Audit-Id': '9dd3022e-cce1-430a-8223-25daddb15756', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff', 'Date': 'Wed, 03 Jan 2024 07:13:21 GMT', 'Content-Length': '352'})
+HTTP response body: {"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"pods \"logger-574bd75fd9-wpg4w\" is forbidden: User \"system:serviceaccount:default:logshipper-sa\" cannot get resource \"pods/log\" in API group \"\" in the namespace \"default\"","reason":"Forbidden","details":{"name":"logger-574bd75fd9-wpg4w","kind":"pods"},"code":403}
+
+3. Получаем список ClusterRole
+
+root@i-01100aa9321f4a297:~# kubectl get clusterrole
+
+...
+view
+admin
+edit
+logshipper-cluster-role
+...
+
+4. Расширяем ClusterRole logshipper-cluster-role, добавляя возможность получать полную информацию о ресурсе. В verbs добавляем параметры get, watch
+
+root@i-02186c44e1c7fb38b:~# kubectl edit clusterrole logshipper-cluster-role
+clusterrole.rbac.authorization.k8s.io/logshipper-cluster-role edited
+
+5. Перезагружаем Pod
+
+root@i-02186c44e1c7fb38b:~# kubectl rollout restart deployment logshipper
+deployment.apps/logshipper restarted

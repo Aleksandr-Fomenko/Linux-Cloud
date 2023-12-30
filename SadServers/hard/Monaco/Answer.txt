@@ -1,0 +1,77 @@
+1. Запускаем тестовые запросы на localhost:5000
+
+admin@i-068f857f9a00d7158:~$ curl -X POST -d "password=password" localhost:5000
+Access denied!
+
+admin@i-068f857f9a00d7158:~$ curl localhost:5000
+
+        <form method="POST">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password">
+            <input type="submit" value="Submit">
+        </form>
+
+2. Проверяем для какого процесса открыт порт 5000
+
+admin@i-068f857f9a00d7158:~$ netstat -tulpn
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 127.0.0.1:5000          0.0.0.0:*               LISTEN      578/python3
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -
+tcp6       0      0 :::6767                 :::*                    LISTEN      563/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      562/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      -
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           -
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           -
+udp6       0      0 fe80::882:aaff:feb5:546 :::*                                -
+udp6       0      0 ::1:323                 :::*                                -
+
+3. Выводим информацию о команде процесса
+
+admin@i-068f857f9a00d7158:~$ ps -p 578 -o command
+COMMAND
+/usr/bin/python3 /home/admin/webserver.py
+
+4. Восстанавливаем файл webserver_v1.py в домашней директории пользователя admin
+
+admin@i-068f857f9a00d7158:~$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        deleted:    webserver_v1.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .bash_history
+        .bash_logout
+        .bashrc
+        .config/
+        .profile
+        .ssh/
+        agent/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+admin@i-068f857f9a00d7158:~$ git restore webserver_v1.py
+
+5. Изучаем код файла webserver_v1.py
+
+6. Т.к файл webserver.py отсутствует в /home/admin , он присутствует в памяти. Необходимо посмотреть переменные процесса.
+
+admin@i-068f857f9a00d7158:~$ strings /proc/578/environ
+LANG=C.UTF-8
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/home/admin
+LOGNAME=admin
+USER=admin
+SHELL=/bin/bash
+INVOCATION_ID=b514dbebcb014c8284fc1257af5be561
+JOURNAL_STREAM=8:11461
+SUPERSECRETPASSWORD=bdFBkE4suaCy
+
+7. Получаем нужный секрет
+
+admin@i-068f857f9a00d7158:~$ curl -X POST -d "password=bdFBkE4suaCy" localhost:5000
+Access granted! Secret is QhyjuI98BBvf

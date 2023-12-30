@@ -1,0 +1,4 @@
+1. При обращении к вебсерверу с помощью утилиты curl удаляем заголовок user-agent из запроса
+
+admin@i-09a83dc73ef187df9:~$ curl -A "" localhost:5000
+Welcome! Password is FDZPmh5AX3oiJt

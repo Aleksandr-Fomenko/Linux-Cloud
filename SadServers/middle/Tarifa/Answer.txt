@@ -1,0 +1,22 @@
+1. Необходимо внести изменения в следующие файлы:
+
+custom-nginx_1.conf:
+    listen 81 -> listen 80
+
+docker-compose.yml:
+    Добавить контейнеру nginx_1 дополнительную сеть frontend_network
+
+2. Пересоздаем контейнеры
+
+admin@i-098b833d782b17feb:~$ docker compose stop
+[+] Stopping 3/3
+ ✔ Container haproxy  Stopped                                                                         0.4s
+ ✔ Container nginx_0  Stopped                                                                         0.3s
+ ✔ Container nginx_1  Stopped                                                                         0.4s
+admin@i-098b833d782b17feb:~$ docker compose up -d
+[+] Running 3/3
+ ✔ Container nginx_1  Started                                                                         0.0s
+ ✔ Container nginx_0  Started                                                                         0.0s
+ ✔ Container haproxy  Started                                                                         0.0s
+
+3. Запускаем тест из описания задачи

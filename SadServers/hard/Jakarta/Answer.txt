@@ -1,0 +1,22 @@
+1. Отправляем ICMP пакеты на google.com
+
+ubuntu@ip-172-31-42-233:/$ ping google.com
+ping: google.com: Name or service not known
+
+2. Пробуем с помощью утилиты dig зарезолвить имя google.com
+
+ubuntu@ip-172-31-42-233:/$ dig google.com +short
+142.250.190.78
+
+3. В файл /etc/nsswitch.conf, расширяем строку hosts, добавляя dns
+
+ubuntu@ip-172-31-42-233:/$ sudo vim /etc/nsswitch.conf
+
+...
+hosts:          files dns
+...
+
+4. Проверяем результат согласно описанию задачи
+
+ubuntu@ip-172-31-42-233:/$ ping google.com
+PING google.com (142.250.190.78) 56(84) bytes of data.

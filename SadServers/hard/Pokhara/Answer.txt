@@ -1,0 +1,96 @@
+1. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:/$ sudo -u client ssh client@localhost 'pwd'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+It is also possible that a host key has just been changed.
+The fingerprint for the ECDSA key sent by the remote host is
+SHA256:EcfFleTUlUWjru8BYOSvAMRbU/MVzdA1HNh6SQDkTlk.
+Please contact your system administrator.
+Add correct host key in /home/client/.ssh/known_hosts to get rid of this message.
+Offending ECDSA key in /home/client/.ssh/known_hosts:1
+  remove with:
+  ssh-keygen -f "/home/client/.ssh/known_hosts" -R "localhost"
+ECDSA host key for localhost has changed and you have requested strict checking.
+Host key verification failed.
+
+2. Удаляем ключ localhost из файла known_hosts пользователя client
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh-keygen -f "/home/client/.ssh/known_hosts" -R "localhost"
+# Host localhost found: line 1
+/home/client/.ssh/known_hosts updated.
+Original contents retained as /home/client/.ssh/known_hosts.old
+
+3. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh client@localhost 'pwd'
+The authenticity of host 'localhost (127.0.0.1)' can't be established.
+ECDSA key fingerprint is SHA256:EcfFleTUlUWjru8BYOSvAMRbU/MVzdA1HNh6SQDkTlk.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'localhost' (ECDSA) to the list of known hosts.
+client@localhost: Permission denied (publickey).
+
+4. Редактируем файл /etc/ssh/sshd_config и перезагружаем службу sshd
+
+Комментируем строки:
+
+#Include /etc/ssh/sshd_config.d/*.conf
+
+Раскомментируем строки:
+
+PubkeyAuthentication yes
+AuthorizedKeysFile      .ssh/authorized_keys .ssh/authorized_keys2
+
+admin@i-082cf62018dd29ccc:~$ sudo systemctl restart sshd
+
+5. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh client@localhost 'pwd'
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Permissions 0644 for '/home/client/.ssh/id_rsa' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+Load key "/home/client/.ssh/id_rsa": bad permissions
+client@localhost: Permission denied (publickey).
+
+6. Выставляем права 0600 на файл /home/client/.ssh/id_rsa
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ls -al /home/client/.ssh/id_rsa
+-rw-r--r-- 1 client client 2610 Feb  5  2023 /home/client/.ssh/id_rsa
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client chmod 0600 /home/client/.ssh/id_rsa
+
+7. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh client@localhost 'pwd'
+Your account has expired; please contact your system administrator.
+Connection closed by 127.0.0.1 port 22
+
+8. Меняем информацию об истечении срока действия пользователя client
+
+admin@i-082cf62018dd29ccc:~$ sudo chage -E -1 client
+
+9. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh client@localhost 'pwd'
+exec request failed on channel 0
+
+10. Редактируем файл /etc/passwd , /etc/security/limits.conf
+
+/etc/passwd
+
+Для пользователя client меняем оболочку /usr/sbin/nologin на /bin/bash
+
+/etc/security/limits.conf
+
+комментируем или удаляем строку - "client   hard    nproc    0"
+
+11. Запускаем тест из описания задачи
+
+admin@i-082cf62018dd29ccc:~$ sudo -u client ssh client@localhost 'pwd'
+/home/client

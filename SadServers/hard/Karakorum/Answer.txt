@@ -1,0 +1,41 @@
+1. Восстанавливаем работу утилиты chmod
+
+admin@i-0a48747ed1fddaa3b:/$ sudo /lib64/ld-linux-x86-64.so.2 /usr/bin/chmod +x /usr/bin/chmod
+
+2. Делаем файл wtfit исполняемым
+
+admin@i-0a48747ed1fddaa3b:/$ cd ~
+admin@i-0a48747ed1fddaa3b:~$ sudo chmod +x wtfit
+
+3. Проверяем работу файла wtfit
+
+admin@i-0a48747ed1fddaa3b:~$ sudo ./wtfit
+ERROR: can't open config file
+
+4. Изучаем трассировку сигналов и системных вызов
+
+admin@i-0a48747ed1fddaa3b:~$ sudo strace ./wtfit
+
+...
+openat(AT_FDCWD, "/home/admin/wtfitconfig.conf", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+...
+
+5. Проверяем работу файла wtfit
+
+admin@i-0a48747ed1fddaa3b:~$ sudo ./wtfit
+ERROR: can't connect to server
+
+6. Изучаем трассировку сигналов и системных вызов
+
+admin@i-0a48747ed1fddaa3b:~$ sudo strace -s 4000 ./wtfit
+
+...
+connect(3, {sa_family=AF_INET, sin_port=htons(7777), sin_addr=inet_addr("127.0.0.1")}, 16) = -1 EINPROGRESS (Operation now in progress)
+...
+
+7. Настраиваем nginx, запускаем webserver который будет доступен по порту 7777
+
+8. Проверяем работу файла wtfit
+
+admin@i-0a48747ed1fddaa3b:~$ ./wtfit
+OK.

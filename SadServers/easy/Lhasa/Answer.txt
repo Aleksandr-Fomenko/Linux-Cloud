@@ -1,0 +1,32 @@
+1. Создаем скрипт <имя скрипта>.sh
+
+```
+#!/usr/bin/bash
+
+GET_SUM_SCORES=$(awk '{ print $2 }' ~/scores.txt | paste -sd+ | bc)
+GET_COUNT_SCORES=$( wc -l ~/scores.txt | awk '{ print $1 }' )
+
+echo "scale=2;$GET_SUM_SCORES/$GET_COUNT_SCORES" | bc
+```
+
+где:
+    GET_SUM_SCORES
+    awk '{ print $2 }' ~/scores.txt - получения столбца значений, которые необходимо будет просуммировать,
+    paste -sd+ - запишет значения в одну строку с разделителем - +,
+    bc - применение базового калькулятора
+
+    GET_COUNT_SCORES
+    wc -l ~/scores.txt - получение кол-ва строк из файла,
+    awk '{ print $1 } - получения столбца c результатом подсчета кол-ва строк
+
+    echo "scale=2;$GET_SUM_SCORES/$GET_COUNT_SCORES" | bc
+    scale=2 - устанавливается точность расчета,
+    $GET_SUM_SCORES/$GET_COUNT_SCORES - получение частного в результате деления суммы чисел и кол-ва строк файла scores.txt,
+    bc - применение базового калькулятора
+
+2. Делаем файл скрипта исполняемым, запускаем скрипт и получаем нужное число
+
+```
+chmod +x <имя скрипта>.sh
+./<имя скрипта>.sh
+```

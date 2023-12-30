@@ -1,0 +1,104 @@
+1. Переходим в пользователя root
+
+admin@i-0bd57e0b2c7893a92:~$ sudo su -
+
+2. Проверяем наличие запущенного процесса postgres, статус службы и открыт ли порт 5432
+
+root@i-07e941f330472130c:~# ps -auxf | grep postgres && netstat -tulpn && systemctl status postgresql@13-main
+
+root         772  0.0  0.1   5264   644 pts/0    S<+  10:00   0:00                  \_ grep postgres
+postgres     635  0.0  6.0 212188 28044 ?        Ss   09:58   0:00 /usr/lib/postgresql/13/bin/postgres -D /var/lib/postgresql/13/main -c config_file=/etc/postgresql/13/main/postgresql.conf
+postgres     642  0.0  0.9 212188  4372 ?        Ss   09:58   0:00  \_ postgres: 13/main: checkpointer
+postgres     643  0.0  1.2 212188  5892 ?        Ss   09:58   0:00  \_ postgres: 13/main: background writer
+postgres     644  0.0  2.1 212188 10056 ?        Ss   09:58   0:00  \_ postgres: 13/main: walwriter
+postgres     645  0.0  1.8 212856  8656 ?        Ss   09:58   0:00  \_ postgres: 13/main: autovacuum launcher
+postgres     646  0.0  1.0  66680  4884 ?        Ss   09:58   0:00  \_ postgres: 13/main: stats collector
+postgres     647  0.0  1.4 212616  6772 ?        Ss   09:58   0:00  \_ postgres: 13/main: logical replication launcher
+
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      619/sshd: /usr/sbin
+tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      635/postgres
+tcp6       0      0 :::6767                 :::*                    LISTEN      592/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      591/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      619/sshd: /usr/sbin
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           621/chronyd
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           391/dhclient
+udp6       0      0 fe80::8f2:89ff:fe7a:546 :::*                                496/dhclient
+udp6       0      0 ::1:323                 :::*                                621/chronyd
+
+● postgresql@13-main.service - PostgreSQL Cluster 13-main
+     Loaded: loaded (/lib/systemd/system/postgresql@.service; enabled-runtime; vendor preset: enabled)
+     Active: active (running) since Mon 2024-01-01 09:58:46 UTC; 1min 57s ago
+    Process: 598 ExecStart=/usr/bin/pg_ctlcluster --skip-systemctl-redirect 13-main start (code=exited, st>
+   Main PID: 635 (postgres)
+      Tasks: 7 (limit: 521)
+     Memory: 38.2M
+        CPU: 271ms
+     CGroup: /system.slice/system-postgresql.slice/postgresql@13-main.service
+             ├─635 /usr/lib/postgresql/13/bin/postgres -D /var/lib/postgresql/13/main -c config_file=/etc/>
+             ├─642 postgres: 13/main: checkpointer
+             ├─643 postgres: 13/main: background writer
+             ├─644 postgres: 13/main: walwriter
+             ├─645 postgres: 13/main: autovacuum launcher
+             ├─646 postgres: 13/main: stats collector
+             └─647 postgres: 13/main: logical replication launcher
+
+Jan 01 09:58:44 i-07e941f330472130c systemd[1]: Starting PostgreSQL Cluster 13-main...
+Jan 01 09:58:46 i-07e941f330472130c systemd[1]: Started PostgreSQL Cluster 13-main.
+
+3. Проверяем коннект к бд согласно задаче
+
+psql: error: FATAL:  pg_hba.conf rejects connection for host "127.0.0.1", user "app1user", database "app1", SSL on
+FATAL:  pg_hba.conf rejects connection for host "127.0.0.1", user "app1user", database "app1", SSL off
+
+4. Проверяем файл pg_hba.conf
+
+root@i-0bd57e0b2c7893a92:~# cat /etc/postgresql/13/main/pg_hba.conf
+...
+# Database administrative login by Unix domain socket
+local   all             postgres                                peer
+host    all             all             all                     reject
+host    all             all             all                     reject
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     peer
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+...
+
+Согласно проверке нам необходимо закомментировать строки которые отклоняют подключения с всех ip, для всех пользователей и ко всем базам
+
+Часть файла pg_hba.conf будет выглядеть следующим образом:
+
+...
+# Database administrative login by Unix domain socket
+local   all             postgres                                peer
+#host    all             all             all                     reject
+#host    all             all             all                     reject
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     peer
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+...
+
+5. Под пользователем postgres перечитываем конфигурацию, чтобы не перезапускать службу
+
+root@i-0ed35121bc4b84a15:~# sudo su - postgres -c 'psql'
+psql (13.13 (Debian 13.13-0+deb11u1))
+Type "help" for help.
+
+postgres=# SELECT pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+(1 row)
+
+6. Проверяем подключение согласно заданию
+
+root@i-0ed35121bc4b84a15:~# PGPASSWORD=app1user psql -h 127.0.0.1 -d app1 -U app1user -c '\q'

@@ -1,0 +1,13 @@
+1. Скрипт для получения ответа
+
+...
+#!/usr/bin/python3
+from collections import Counter
+
+def popWord(fileName):
+    data = open(fileName, 'r')
+    print(Counter(data.read().upper().split()).most_common(2)[-1])
+
+if __name__ == "__main__":
+    popWord('/home/admin/frankestein.txt')
+...

@@ -1,0 +1,29 @@
+1. Фильтруем данный файла station_information.json с помощью утилиты jq
+
+admin@i-03f112b6e3756014a:~$ jq '.data.stations[] | select(.has_kiosk==false and .capacity >= 30)' station_information.json
+{
+  "eightd_has_key_dispenser": false,
+  "rental_methods": [
+    "KEY",
+    "CREDITCARD"
+  ],
+  "external_id": "05c5e17c-7aa9-49b7-9da3-9db4858ec1fc",
+  "station_id": "05c5e17c-7aa9-49b7-9da3-9db4858ec1fc",
+  "rental_uris": {
+    "ios": "https://bkn.lft.to/lastmile_qr_scan",
+    "android": "https://bkn.lft.to/lastmile_qr_scan"
+  },
+  "region_id": "71",
+  "capacity": 32,
+  "short_name": "6569.09",
+  "electric_bike_surcharge_waiver": false,
+  "has_kiosk": false,
+  "name": "W 35 St & 9 Ave",
+  "lon": -73.9960889518261,
+  "lat": 40.75414519263519,
+  "station_type": "classic",
+  "eightd_station_services": []
+}
+
+2. Записываем значение station_id в файл ~/mysolution
+

@@ -1,0 +1,93 @@
+1. Запускаем тест из описания задачи
+
+root@ip-172-31-21-14:/# curl -v 127.0.0.1:80
+*   Trying 127.0.0.1:80...
+
+2. Проверяем таблицу iptables
+
+root@ip-172-31-21-14:/# iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+DROP       tcp  --  anywhere             anywhere             tcp dpt:http
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+3. Удаляем блокирующее правило из INPUT
+
+root@ip-172-31-21-14:/# iptables -D INPUT -p tcp -m tcp --dport 80 -j DROP
+root@ip-172-31-21-14:/# iptables -L
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+4. Запускаем тест из описания задачи
+
+root@ip-172-31-21-14:/# curl -v 127.0.0.1:80
+*   Trying 127.0.0.1:80...
+* Connected to 127.0.0.1 (127.0.0.1) port 80 (#0)
+> GET / HTTP/1.1
+> Host: 127.0.0.1
+> User-Agent: curl/7.81.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 403 Forbidden
+< Date: Mon, 01 Jan 2024 16:18:45 GMT
+< Server: Apache/2.4.52 (Ubuntu)
+< Content-Length: 274
+< Content-Type: text/html; charset=iso-8859-1
+<
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>403 Forbidden</title>
+</head><body>
+<h1>Forbidden</h1>
+<p>You don't have permission to access this resource.</p>
+<hr>
+<address>Apache/2.4.52 (Ubuntu) Server at 127.0.0.1 Port 80</address>
+</body></html>
+* Connection #0 to host 127.0.0.1 left intact
+
+5. Проверяем содержимое файлов логов apache - /var/log/apache2/access.log и /var/log/apache2/error.log
+
+error.log
+
+...
+[Mon Jan 01 16:18:45.065938 2024] [core:error] [pid 772:tid 140284763563584] (13)Permission denied: [client 127.0.0.1:41344] AH00132: file permissions deny server access: /var/www/html/index.html
+...
+
+6. Назначаем владельца файла /var/www/html/index.html пользователя и группу www-data:www-data
+
+root@ip-172-31-21-14:/# chown www-data:www-data /var/www/html/index.html
+
+7. Запускаем тест из описания задачи
+
+root@ip-172-31-21-14:/var/www/html# curl -v 127.0.0.1:80
+*   Trying 127.0.0.1:80...
+* Connected to 127.0.0.1 (127.0.0.1) port 80 (#0)
+> GET / HTTP/1.1
+> Host: 127.0.0.1
+> User-Agent: curl/7.81.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Date: Mon, 01 Jan 2024 16:23:46 GMT
+< Server: Apache/2.4.52 (Ubuntu)
+< Last-Modified: Mon, 01 Aug 2022 00:40:24 GMT
+< ETag: "10-5e5233ed9edbf"
+< Accept-Ranges: bytes
+< Content-Length: 16
+< Content-Type: text/html
+<
+hello sadserver
+* Connection #0 to host 127.0.0.1 left intact

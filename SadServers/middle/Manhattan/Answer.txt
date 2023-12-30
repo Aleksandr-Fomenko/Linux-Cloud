@@ -1,0 +1,55 @@
+1. Проверяем порт 5432, наличие процесса postgres
+
+root@i-0e651136aaec01ffd:/# netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      595/sshd
+tcp6       0      0 :::6767                 :::*                    LISTEN      585/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      587/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      595/sshd
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           624/chronyd
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           366/dhclient
+udp6       0      0 fe80::874:e5ff:fe74:546 :::*                                472/dhclient
+udp6       0      0 ::1:323                 :::*                                624/chronyd
+
+root@i-0e651136aaec01ffd:/# ps -auxf | grep postgres
+root       871  0.0  0.1   4832   824 pts/0    S+   06:42   0:00      \_ grep postgres
+
+2. Перезагружаем службу postgresql
+
+root@i-0f9abedc905ef803e:/# systemctl restart postgresql
+
+3. Изучаем лог файл postgres
+
+root@i-0e651136aaec01ffd:/# less /var/log/postgresql/postgresql-14-main.log
+
+...
+2024-01-02 06:40:00.745 UTC [660] FATAL:  could not create lock file "postmaster.pid": No space left on device
+pg_ctl: could not start server
+Examine the log output.
+...
+
+4. Проверяем отчет по использованию файловой системы
+
+root@i-0f9abedc905ef803e:/# df -h
+Filesystem       Size  Used Avail Use% Mounted on
+udev             224M     0  224M   0% /dev
+tmpfs             47M  1.5M   46M   4% /run
+/dev/nvme1n1p1   7.7G  1.2G  6.1G  17% /
+tmpfs            233M     0  233M   0% /dev/shm
+tmpfs            5.0M     0  5.0M   0% /run/lock
+tmpfs            233M     0  233M   0% /sys/fs/cgroup
+/dev/nvme1n1p15  124M  278K  124M   1% /boot/efi
+/dev/nvme0n1     8.0G  8.0G   28K 100% /opt/pgdata
+
+5. Удаляем файлы .bk
+
+root@i-0f9abedc905ef803e:/opt/pgdata# rm *.bk
+
+6. Перезагружаем службу postgresql
+
+root@i-0f9abedc905ef803e:/# systemctl restart postgresql
+
+7. Запускаем тестовый запрос из описания задачи
+
+

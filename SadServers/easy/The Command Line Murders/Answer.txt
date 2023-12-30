@@ -1,0 +1,11 @@
+1. У подозреваемая синяя Honda с номерным знаком, который начинается с «L337» и заканчивается на «9» согласно файлу vehicles подходят Joe Germuska и Jeremy Bowers
+2. Согласно зацепкам мы знаем, что подозреваемый — высокий мужчина и состоит в клубах "Rotary_Club, Delta SkyMiles, Terminal_City_Library, the Museum of Bash History"
+
+admin@i-001b6e83c80a44505:~/clmystery/mystery/memberships$ cat Rotary_Club Delta_SkyMiles Terminal_City_Library Museum_of_Bash_History |grep -c "Jeremy Bowers"
+3
+
+admin@i-001b6e83c80a44505:~/clmystery/mystery/memberships$ cat Rotary_Club Delta_SkyMiles Terminal_City_Library Museum_of_Bash_History |grep -c "Joe Germuska"
+4
+
+3. Ответ - Joe Germuska
+

@@ -1,0 +1,114 @@
+1. Запускаем тесты из описания задачи
+
+admin@i-06c6678866bdb4603:~$ python3 ~/producer.py hello-lwc
+Traceback (most recent call last):
+  File "/home/admin/producer.py", line 18, in <module>
+    connection = pika.BlockingConnection(parameters)
+  File "/usr/local/lib/python3.9/dist-packages/pika/adapters/blocking_connection.py", line 360, in __init__
+    self._impl = self._create_connection(parameters, _impl_class)
+  File "/usr/local/lib/python3.9/dist-packages/pika/adapters/blocking_connection.py", line 451, in _create_connection
+    raise self._reap_last_connection_workflow_error(error)
+pika.exceptions.AMQPConnectionError
+
+2. Запускаем docker контейнеры через docker compose
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker compose up -d
+[+] Running 5/5
+ ✔ Network rabbitmq-cluster-docker-master_default        Created                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-haproxy-1    Started                                      0.1s
+
+ 3. Смотрим состояние контейнеров
+
+ admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker ps -a
+CONTAINER ID   IMAGE                   COMMAND                  CREATED         STATUS                      PORTS                                                                                      NAMES
+52d439aa26a6   haproxy:1.7             "docker-entrypoint.s…"   7 minutes ago   Up 7 minutes                0.0.0.0:5672->5672/tcp, :::5672->5672/tcp, 0.0.0.0:15672->15672/tcp, :::15672->15672/tcp   rabbitmq-cluster-docker-master-haproxy-1
+37d9e9607e50   rabbitmq:3-management   "/usr/local/bin/clus…"   7 minutes ago   Exited (69) 6 minutes ago                                                                                              rabbitmq-cluster-docker-master-rabbitmq2-1
+3aa5fdad6d70   rabbitmq:3-management   "/usr/local/bin/clus…"   7 minutes ago   Exited (69) 6 minutes ago                                                                                              rabbitmq-cluster-docker-master-rabbitmq3-1
+e7883cf134c8   rabbitmq:3-management   "/usr/local/bin/clus…"   7 minutes ago   Exited (1) 7 minutes ago                                                                                               rabbitmq-cluster-docker-master-rabbitmq1-1
+
+4. Изучаем логи контейнера rabbitmq-cluster-docker-master-rabbitmq1-1
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker logs rabbitmq-cluster-docker-master-rabbitmq1-1
+...
+tail: cannot open '/var/log/rabbitmq/*.log' for reading: No such file or directory
+tail: no files remaining
+...
+
+5. Меняем строку 26 у скрипта cluster-entrypoint.sh на tail -f /var/log/bootstrap.log
+
+6. Удаляем и запускаем контейнеры через docker compose
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker compose rm
+? Going to remove rabbitmq-cluster-docker-master-rabbitmq2-1, rabbitmq-cluster-docker-master-rabbitmq3-1, rabbitmq-cluster-docker-master-rabbitmq1-1 Yes
+[+] Removing 3/0
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Removed                                      0.0s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Removed                                      0.0s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Removed                                      0.0s
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker compose up -d
+[+] Running 4/4
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-haproxy-1    Running                                      0.0s
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ docker ps -a
+CONTAINER ID   IMAGE                   COMMAND                  CREATED          STATUS          PORTS                                                                                      NAMES
+c9c4c5a1e036   rabbitmq:3-management   "/usr/local/bin/clus…"   9 seconds ago    Up 7 seconds    4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 15691-15692/tcp, 25672/tcp                       rabbitmq-cluster-docker-master-rabbitmq2-1
+ab5f7308608b   rabbitmq:3-management   "/usr/local/bin/clus…"   9 seconds ago    Up 7 seconds    4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 15691-15692/tcp, 25672/tcp                       rabbitmq-cluster-docker-master-rabbitmq3-1
+e513fcbaaf74   rabbitmq:3-management   "/usr/local/bin/clus…"   9 seconds ago    Up 8 seconds    4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 15691-15692/tcp, 25672/tcp                       rabbitmq-cluster-docker-master-rabbitmq1-1
+52d439aa26a6   haproxy:1.7             "docker-entrypoint.s…"   12 minutes ago   Up 12 minutes   0.0.0.0:5672->5672/tcp, :::5672->5672/tcp, 0.0.0.0:15672->15672/tcp, :::15672->15672/tcp   rabbitmq-cluster-docker-master-haproxy-1
+
+7. Запускаем тест из описания задачи
+
+admin@i-06c6678866bdb4603:~$ python3 ~/producer.py hello-lwc
+Traceback (most recent call last):
+  File "/home/admin/producer.py", line 23, in <module>
+    channel.queue_declare(queue=QUEUE)
+  File "/usr/local/lib/python3.9/dist-packages/pika/adapters/blocking_connection.py", line 2512, in queue_declare
+    validators.require_string(queue, 'queue')
+  File "/usr/local/lib/python3.9/dist-packages/pika/validators.py", line 15, in require_string
+    raise TypeError('%s must be a str or unicode str, but got %r' % (
+TypeError: queue must be a str or unicode str, but got None
+
+Для QUEUE не указано дефолтное значение + креды отличаются от скрипта consumer.py
+
+8. В окружение экспортируем переменные RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS с значениями из consumer.py
+
+admin@i-06c6678866bdb4603:~/rabbitmq-cluster-docker-master$ export RABBITMQ_DEFAULT_USER=username ; export RABBITMQ_DEFAULT_PASS=password ;
+
+9. Удаляем и запускаем контейнеры через docker compose
+
+admin@i-079c80b04fb93eae5:~/rabbitmq-cluster-docker-master$ docker compose stop
+[+] Stopping 4/4
+ ✔ Container rabbitmq-cluster-docker-master-haproxy-1    Stopped                                     10.8s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Stopped                                     10.5s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Stopped                                     10.5s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Stopped                                     10.3s
+
+admin@i-079c80b04fb93eae5:~/rabbitmq-cluster-docker-master$ docker compose rm
+? Going to remove rabbitmq-cluster-docker-master-haproxy-1, rabbitmq-cluster-docker-master-rabbitmq3-1, rabbitmq-cluster-docker-master-rabbitmq2-1, rabbitmq-cluster-docker-master-rabbitmq1-1 Yes
+[+] Removing 4/0
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Removed                                      0.0s
+ ✔ Container rabbitmq-cluster-docker-master-haproxy-1    Removed                                      0.0s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Removed                                      0.0s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Removed                                      0.0s
+
+admin@i-079c80b04fb93eae5:~/rabbitmq-cluster-docker-master$ docker compose up -d
+[+] Running 4/4
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq1-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq3-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-rabbitmq2-1  Started                                      0.1s
+ ✔ Container rabbitmq-cluster-docker-master-haproxy-1    Started                                      0.0s
+
+10. В .bashrc добавляем export переменных RMQ_USER=username RMQ_PASSWORD=password RMQ_QUEUE=hello и запускаем скрипты producer.py, consumer.py
+
+admin@i-0b570e31b5c4116ea:~$ vim .bashrc
+
+admin@i-0b570e31b5c4116ea:~$ source .bashrc
+
+admin@i-079c80b04fb93eae5:~$ python3 ~/producer.py hello-lwc
+Message sent to RabbitMQ

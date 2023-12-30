@@ -1,0 +1,49 @@
+1. Запускаем тестовую команду из описания задачи
+
+admin@i-0447823ef48f874a2:/$ curl -s http://localhost
+
+2. Проверяем службы nginx, gunicorn и конфигурационный файл /etc/nginx/sites-available/default
+
+admin@i-0447823ef48f874a2:/$ systemctl status nginx gunicorn
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; disabled; vendor preset: enabled)
+     Active: inactive (dead)
+       Docs: man:nginx(8)
+
+● gunicorn.service - gunicorn daemon
+     Loaded: loaded (/etc/systemd/system/gunicorn.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2024-01-02 07:16:55 UTC; 4min 53s ago
+TriggeredBy: ● gunicorn.socket
+   Main PID: 592 (gunicorn)
+      Tasks: 2 (limit: 524)
+     Memory: 17.1M
+        CPU: 309ms
+     CGroup: /system.slice/gunicorn.service
+             ├─592 /usr/bin/python3 /usr/local/bin/gunicorn --bind unix:/run/gunicorn.sock wsgi
+             └─667 /usr/bin/python3 /usr/local/bin/gunicorn --bind unix:/run/gunicorn.sock wsgi
+
+Jan 02 07:16:55 i-0447823ef48f874a2 systemd[1]: Started gunicorn daemon.
+Jan 02 07:16:56 i-0447823ef48f874a2 gunicorn[592]: [2024-01-02 07:16:56 +0000] [592] [INFO] Starting gunic>
+Jan 02 07:16:56 i-0447823ef48f874a2 gunicorn[592]: [2024-01-02 07:16:56 +0000] [592] [INFO] Listening at: >
+Jan 02 07:16:56 i-0447823ef48f874a2 gunicorn[592]: [2024-01-02 07:16:56 +0000] [592] [INFO] Using worker: >
+Jan 02 07:16:56 i-0447823ef48f874a2 gunicorn[667]: [2024-01-02 07:16:56 +0000] [667] [INFO] Booting worker>
+admin@i-0447823ef48f874a2:/$ cat /etc/nginx/sites-available/default
+server {
+    listen 80;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.socket;
+    }
+}
+
+3. В конфигурационном файле /etc/nginx/sites-available/default меняем строчку proxy_pass http://unix:/run/gunicorn.socket; на
+proxy_pass http://unix:/run/gunicorn.sock; и запускаем службу nginx.
+
+4. В файле /home/admin/wsgi.py меняем значение Content-Length на 100.
+
+5. Перезагружаем службу gunicorn
+
+root@i-0447823ef48f874a2:~# systemctl restart gunicorn
+
+6. Запускаем тестовую команду из описания задачи

@@ -1,0 +1,99 @@
+1. Запускаем тест из описания задачи
+
+admin@ip-10-0-0-64:/$ curl localhost:8888
+curl: (7) Failed to connect to localhost port 8888: Connection refused
+
+2. Проверяем список namespace и список подов в нужном ns
+
+admin@ip-10-0-0-64:/$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   474d
+kube-system       Active   474d
+kube-public       Active   474d
+kube-node-lease   Active   474d
+web               Active   474d
+
+admin@ip-10-0-0-64:/$ kubectl get pods -n web
+NAME                                 READY   STATUS             RESTARTS   AGE
+webapp-deployment-666b67994b-5sffz   0/1     ImagePullBackOff   0          473d
+
+3. Изучаем описание пода
+
+admin@ip-10-0-0-64:/$ kubectl describe pods webapp-deployment-666b67994b-5sffz -n web
+
+Events:
+  Type     Reason          Age                  From               Message
+  ----     ------          ----                 ----               -------
+  Normal   Scheduled       473d                 default-scheduler  Successfully assigned web/webapp-deployment-666b67994b-5sffz to ip-10-0-0-17
+  Normal   Pulling         473d (x4 over 473d)  kubelet            Pulling image "webapp"
+  Warning  Failed          473d (x4 over 473d)  kubelet            Failed to pull image "webapp": rpc error: code = Unknown desc = failed to pull and unpack image "docker.io/library/webapp:latest": failed to resolve reference "docker.io/library/webapp:latest": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+  Warning  Failed          473d (x4 over 473d)  kubelet            Error: ErrImagePull
+  Warning  Failed          473d (x6 over 473d)  kubelet            Error: ImagePullBackOff
+  Normal   BackOff         473d (x7 over 473d)  kubelet            Back-off pulling image "webapp"
+  Normal   SandboxChanged  473d                 kubelet            Pod sandbox changed, it will be killed and re-created.
+  Normal   BackOff         473d (x6 over 473d)  kubelet            Back-off pulling image "webapp"
+  Warning  Failed          473d (x6 over 473d)  kubelet            Error: ImagePullBackOff
+  Normal   Pulling         473d (x4 over 473d)  kubelet            Pulling image "webapp"
+  Warning  Failed          473d (x4 over 473d)  kubelet            Failed to pull image "webapp": rpc error: code = Unknown desc = failed to pull and unpack image "docker.io/library/webapp:latest": failed to resolve reference "docker.io/library/webapp:latest": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+  Warning  Failed          473d (x4 over 473d)  kubelet            Error: ErrImagePull
+
+4. Пытаемся скачать образ webapp
+
+admin@ip-10-0-0-64:/$ sudo docker pull webapp
+Using default tag: latest
+Error response from daemon: Get "https://registry-1.docker.io/v2/": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+
+5. Создаем локальный registry и пушим образ webapp
+
+admin@ip-10-0-0-64:~$ sudo docker images
+REPOSITORY   TAG        IMAGE ID       CREATED         SIZE
+webapp       latest     9c082e2983bc   15 months ago   135MB
+python       3.7-slim   c1d0bab51bbf   15 months ago   123MB
+registry     2          3a0f7b0a13ef   17 months ago   24.1MB
+
+admin@ip-10-0-0-64:~$ sudo docker run -p 5000:5000 -d registry:2
+2e8ca33c4457f2707c914132259ed6ee5cf938053fb2c36fee9f96f74b6882bf
+
+admin@ip-10-0-0-64:~$ sudo docker tag webapp localhost:5000/webapp
+
+admin@ip-10-0-0-64:~$ sudo docker push localhost:5000/webapp
+Using default tag: latest
+The push refers to repository [localhost:5000/webapp]
+d4a3f4c0cc92: Pushed
+2d08ca8d8c31: Pushed
+be0120f1f0a9: Pushed
+f1ec60f70b75: Pushed
+55fd06cb471b: Pushed
+b249887652be: Pushed
+95a02847aa85: Pushed
+b45078e74ec9: Pushed
+latest: digest: sha256:529296e183723c5170e832cac2c1144e3f11c15d33bee5900d88842df0232e35 size: 1995
+
+6. Редактируем файл /home/admin/deployment.yml
+
+Меняем строки:
+
+image: localhost:5000/webapp
+containerPort: 8888
+
+7. Применяем манифест
+
+admin@ip-10-0-0-64:~$ kubectl apply -f deployment.yml -n web
+deployment.apps/webapp-deployment configured
+
+8. Проверяем наличие запущенного pod'a
+
+admin@ip-10-0-0-64:~$ kubectl get pods -n web
+NAME                                 READY   STATUS        RESTARTS   AGE
+webapp-deployment-666b67994b-5sffz   0/1     Terminating   0          473d
+webapp-deployment-8f869f757-vwgxw    1/1     Running       0          110s
+
+9. Делаем проброс портов до контейнера
+
+admin@ip-10-0-0-64:~$ kubectl port-forward deployments/webapp-deployment 8888 -n web &
+
+10. Запускаем тест из описания задачи
+
+admin@ip-10-0-0-64:~$ curl localhost:8888
+Handling connection for 8888
+Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch

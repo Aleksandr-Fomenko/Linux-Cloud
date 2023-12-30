@@ -1,0 +1,72 @@
+1. Переходим в директорию пользователя admin
+
+admin@i-0ebf420943f37c6c8:/$ cd /home/admin/app/
+
+2. Проверяем наличие запущенного/незапущенного контейнера, читаем его логи, проверяем есть ли запущенный процесс, который слушает порт 8888
+
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS                     PORTS     NAMES
+124a4fb17a1c   app       "docker-entrypoint.s…"   15 months ago   Exited (1) 15 months ago             elated_taussig
+
+admin@i-0d5da9a830cc600ad:/$ sudo docker logs 124
+node:internal/modules/cjs/loader:928
+  throw err;
+  ^
+
+Error: Cannot find module '/usr/src/app/serve.js'
+    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:925:15)
+    at Function.Module._load (node:internal/modules/cjs/loader:769:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:76:12)
+    at node:internal/main/run_main_module:17:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+admin@i-0ebf420943f37c6c8:~/app$ sudo netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN      618/nginx: master p
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      596/sshd: /usr/sbin
+tcp6       0      0 :::8888                 :::*                    LISTEN      618/nginx: master p
+tcp6       0      0 :::6767                 :::*                    LISTEN      569/sadagent
+tcp6       0      0 :::8080                 :::*                    LISTEN      568/gotty
+tcp6       0      0 :::22                   :::*                    LISTEN      596/sshd: /usr/sbin
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           603/chronyd
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           398/dhclient
+udp6       0      0 ::1:323                 :::*                                603/chronyd
+udp6       0      0 fe80::857:99ff:fe0e:546 :::*                                472/dhclient
+
+3. В Dockerfile редактируем слой EXPOSE, CMD (параметры указаны в логах сборки) и пересобираем контейнер
+
+admin@i-0ebf420943f37c6c8:~/app$ sudo docker build . -t app
+Sending build context to Docker daemon  101.9kB
+Step 1/7 : FROM node:15.7-alpine
+ ---> 706d12284dd5
+Step 2/7 : WORKDIR /usr/src/app
+ ---> Using cache
+ ---> 463b1571f18e
+Step 3/7 : COPY ./package*.json ./
+ ---> Using cache
+ ---> acfb467c80ba
+Step 4/7 : RUN npm install
+ ---> Using cache
+ ---> 5cad5aa08c7a
+Step 5/7 : COPY ./* ./
+ ---> 72523874511c
+Step 6/7 : EXPOSE 8888
+ ---> Running in 45cfd8df4bf8
+Removing intermediate container 45cfd8df4bf8
+ ---> 0fde5b3a840b
+Step 7/7 : CMD [ "node", "server.js" ]
+ ---> Running in 606c038957e2
+Removing intermediate container 606c038957e2
+ ---> b3e60305fab9
+Successfully built b3e60305fab9
+Successfully tagged app:latest
+
+4. Запускаем пересобранный контейнер и проверяем доступность запросом из описания задачи
+
+admin@i-0ebf420943f37c6c8:~/app$ sudo docker run -p 8888:8888 -d app
+976a86a2030d8c982fc92a766933a5630ca7ed022303cb89c8ea87e3d20d9008
+
+admin@i-0ebf420943f37c6c8:~/app$ curl localhost:8888
+Hello World
